@@ -148,6 +148,27 @@ int main(int argc, char *argv[])
                 break;
             }
         }
+    } while (inputCode != ' ');
+
+    // Start simulation
+    curs_set(0);
+    timeout(1000);
+    
+    do {
+        inputCode = getch();
+
+        for (int i = 0; i < totalChars; i++) {
+            if (buffer[i] == 'o') {
+                buffer[i] = ' ';
+            } 
+            else if (buffer[i] == ' ') {
+                buffer[i] = 'o';
+            }
+        }
+
+        clear();
+        addstr(buffer);
+        refresh();
     } while (inputCode != 'q');
 
     // Cleanup
