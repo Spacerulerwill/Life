@@ -7,6 +7,78 @@
 
 #define DEFAULT_MS_FRAME_DELAY 200
 
+void printMenu(const char* buffer) {
+    addstr(buffer);
+    attrset(COLOR_PAIR(1));
+    addstr("\n\nEnter");
+    attrset(COLOR_PAIR(0));
+    addstr(" Flip Cell");
+
+    attrset(COLOR_PAIR(1));
+    addstr("\nArrow Keys");
+    attrset(COLOR_PAIR(0));
+    addstr(" Move Around");
+
+    attrset(COLOR_PAIR(1));
+    addstr("\nSpace");
+    attrset(COLOR_PAIR(0));
+    addstr(" Start Simulation");
+
+    attrset(COLOR_PAIR(1));
+    addstr("\nQ");
+    attrset(COLOR_PAIR(0));
+    addstr(" Quit");
+}
+
+void printAutomata(const char* buffer) {
+    addstr(buffer);
+    attrset(COLOR_PAIR(1));
+    addstr("\nQ");
+    attrset(COLOR_PAIR(0));
+    addstr(" Quit");
+}
+
+void calculateNextGeneration(char* bufferRead, char* bufferWrite, int gridWidth, size_t totalChars) {
+    memcpy(bufferRead, (void*)bufferWrite, totalChars * sizeof(char));
+
+    for (int x = 1; x < gridWidth + 1; x++) {
+        for (int y = 1; y < gridWidth + 1; y++) {
+            int idx = x + y * (gridWidth + 3);
+
+            // count live neighbors
+            int live_neighbors = 0;
+
+            live_neighbors += (int)(bufferRead[idx - 1] == 'o'); // left
+            live_neighbors += (int)(bufferRead[idx + 1] == 'o'); // right
+            live_neighbors += (int)(bufferRead[idx - (gridWidth + 3)] == 'o'); // bottom
+            live_neighbors += (int)(bufferRead[idx + (gridWidth + 3)] == 'o'); // top
+            live_neighbors += (int)(bufferRead[idx - 1 - (gridWidth + 3)] == 'o'); // bottom left
+            live_neighbors += (int)(bufferRead[idx - 1 + (gridWidth + 3)] == 'o'); // bottom right
+            live_neighbors += (int)(bufferRead[idx + 1 - (gridWidth + 3)] == 'o'); // top left
+            live_neighbors += (int)(bufferRead[idx + 1 + (gridWidth + 3)] == 'o'); // bottom right
+
+            if (bufferRead[idx] == 'o') {
+                // if alive and has less than 2 or more than 3 neighbors it dies
+                if (live_neighbors < 2 || live_neighbors > 3) {
+                    bufferWrite[idx] = ' ';
+                } 
+            } else if (bufferRead[idx] == ' ') {
+                // if its dead, then if it has three live neighbors it will come back to life
+                if (live_neighbors == 3) {
+                    bufferWrite[idx] = 'o';
+                }
+            }
+        }
+    }
+}
+
+void nextFrame(char* bufferRead, char* bufferWrite, int gridWidth, size_t totalChars) {
+    calculateNextGeneration(bufferRead, bufferWrite, gridWidth, totalChars);
+    clear();
+    printAutomata(bufferWrite);
+    refresh();
+}
+
 int main(int argc, char *argv[])
 {
     /*
@@ -72,7 +144,7 @@ int main(int argc, char *argv[])
     There must also be an extra row on the top and bottom for borders above
     and below. We also need one extra char for null terminator!
     */
-    uintmax_t totalChars = ((width + 3) * (height + 2));
+    size_t totalChars = ((width + 3) * (height + 2));
 
     char* buffer = (char*)malloc(sizeof(char) * totalChars);
     memset(buffer, ' ', sizeof(char) * totalChars);
@@ -112,9 +184,14 @@ int main(int argc, char *argv[])
 
     // Init curses screen
     initscr();
+    if (has_colors()) {
+        use_default_colors();
+        start_color();
+        init_pair(1, COLOR_BLACK, COLOR_WHITE);
+    }
 
     // Draw our char buffer and refresh the screen
-    addstr(buffer);
+    printMenu(buffer);
     refresh();
 
     // Our initial mouse position is (1,1) as to not be on the border
@@ -170,7 +247,7 @@ int main(int argc, char *argv[])
                     buffer[cellIdx] = 'o';
                 }
                 clear();
-                addstr(buffer);
+                printMenu(buffer);
                 refresh();
                 move(y,x);
                 break;
@@ -183,45 +260,12 @@ int main(int argc, char *argv[])
 
     // Start simulation
     curs_set(0);
+    nextFrame(bufferCopy, buffer, width, totalChars);
     timeout(msFrameDelay);
 
     do {
         inputCode = getch();
-        memcpy(bufferCopy, (void*)buffer, totalChars * sizeof(char));
-
-        for (int x = 1; x < width + 1; x++) {
-            for (int y = 1; y < width + 1; y++) {
-                int idx = x + y * (width + 3);
-
-                // count live neighbors
-                int live_neighbors = 0;
-
-                live_neighbors += (int)(bufferCopy[idx - 1] == 'o'); // left
-                live_neighbors += (int)(bufferCopy[idx + 1] == 'o'); // right
-                live_neighbors += (int)(bufferCopy[idx - (width + 3)] == 'o'); // bottom
-                live_neighbors += (int)(bufferCopy[idx + (width + 3)] == 'o'); // top
-                live_neighbors += (int)(bufferCopy[idx - 1 - (width + 3)] == 'o'); // bottom left
-                live_neighbors += (int)(bufferCopy[idx - 1 + (width + 3)] == 'o'); // bottom right
-                live_neighbors += (int)(bufferCopy[idx + 1 - (width + 3)] == 'o'); // top left
-                live_neighbors += (int)(bufferCopy[idx + 1 + (width + 3)] == 'o'); // bottom right
-
-                if (bufferCopy[idx] == 'o') {
-                    // if alive and has less than 2 or more than 3 neighbors it dies
-                    if (live_neighbors < 2 || live_neighbors > 3) {
-                        buffer[idx] = ' ';
-                    } 
-                } else if (bufferCopy[idx] == ' ') {
-                    // if its dead, then if it has three live neighbors it will come back to life
-                    if (live_neighbors == 3) {
-                        buffer[idx] = 'o';
-                    }
-                }
-            }
-        }
-
-        clear();
-        addstr(buffer);
-        refresh();
+        nextFrame(bufferCopy, buffer, width, totalChars);
     } while (inputCode != 'q');
 
     // Cleanup
