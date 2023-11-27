@@ -109,10 +109,10 @@ int main(int argc, char *argv[])
             fputs("Value provided for optional argument 3 - FPS - is not a valid integer\n", stderr);
             return EXIT_FAILURE;
         }
-        msFrameDelay = (int)(1.0f / (float)fps);
+        msFrameDelay = 1000/fps;
     } else {
         msFrameDelay = DEFAULT_MS_FRAME_DELAY;
-    }
+    }   
 
     {
         int lwidth = strtol(argv[1], &endptr, 10);
