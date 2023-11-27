@@ -6,7 +6,8 @@
 #include <errno.h>
 
 #define DEFAULT_MS_FRAME_DELAY 200
-
+#define LIVE_CELL 'o'
+#define DEAD_CELL ' '
 void printMenu(const char* buffer) {
     addstr(buffer);
     attrset(COLOR_PAIR(1));
@@ -48,24 +49,24 @@ void calculateNextGeneration(char* bufferRead, char* bufferWrite, int gridWidth,
             // count live neighbors
             int live_neighbors = 0;
 
-            live_neighbors += (int)(bufferRead[idx - 1] == 'o'); // left
-            live_neighbors += (int)(bufferRead[idx + 1] == 'o'); // right
-            live_neighbors += (int)(bufferRead[idx - (gridWidth + 3)] == 'o'); // bottom
-            live_neighbors += (int)(bufferRead[idx + (gridWidth + 3)] == 'o'); // top
-            live_neighbors += (int)(bufferRead[idx - 1 - (gridWidth + 3)] == 'o'); // bottom left
-            live_neighbors += (int)(bufferRead[idx - 1 + (gridWidth + 3)] == 'o'); // bottom right
-            live_neighbors += (int)(bufferRead[idx + 1 - (gridWidth + 3)] == 'o'); // top left
-            live_neighbors += (int)(bufferRead[idx + 1 + (gridWidth + 3)] == 'o'); // bottom right
+            live_neighbors += (int)(bufferRead[idx - 1] == LIVE_CELL); // left
+            live_neighbors += (int)(bufferRead[idx + 1] == LIVE_CELL); // right
+            live_neighbors += (int)(bufferRead[idx - (gridWidth + 3)] == LIVE_CELL); // bottom
+            live_neighbors += (int)(bufferRead[idx + (gridWidth + 3)] == LIVE_CELL); // top
+            live_neighbors += (int)(bufferRead[idx - 1 - (gridWidth + 3)] == LIVE_CELL); // bottom left
+            live_neighbors += (int)(bufferRead[idx - 1 + (gridWidth + 3)] == LIVE_CELL); // bottom right
+            live_neighbors += (int)(bufferRead[idx + 1 - (gridWidth + 3)] == LIVE_CELL); // top left
+            live_neighbors += (int)(bufferRead[idx + 1 + (gridWidth + 3)] == LIVE_CELL); // bottom right
 
-            if (bufferRead[idx] == 'o') {
+            if (bufferRead[idx] == LIVE_CELL) {
                 // if alive and has less than 2 or more than 3 neighbors it dies
                 if (live_neighbors < 2 || live_neighbors > 3) {
-                    bufferWrite[idx] = ' ';
+                    bufferWrite[idx] = DEAD_CELL;
                 } 
-            } else if (bufferRead[idx] == ' ') {
+            } else if (bufferRead[idx] == DEAD_CELL) {
                 // if its dead, then if it has three live neighbors it will come back to life
                 if (live_neighbors == 3) {
-                    bufferWrite[idx] = 'o';
+                    bufferWrite[idx] = LIVE_CELL;
                 }
             }
         }
@@ -147,7 +148,7 @@ int main(int argc, char *argv[])
     size_t totalChars = ((width + 3) * (height + 2));
 
     char* buffer = (char*)malloc(sizeof(char) * totalChars);
-    memset(buffer, ' ', sizeof(char) * totalChars);
+    memset(buffer, DEAD_CELL, sizeof(char) * totalChars);
 
     // we will need to copy the buffer in the for loop, so we allocate space for that one too
     char* bufferCopy = (char*)malloc(sizeof(char) * totalChars);
@@ -240,11 +241,11 @@ int main(int argc, char *argv[])
             }
             case 10: {
                 int cellIdx = y * (width + 3) + x;
-                if (buffer[cellIdx] == 'o') {
-                    buffer[cellIdx] = ' ';
+                if (buffer[cellIdx] == LIVE_CELL) {
+                    buffer[cellIdx] = DEAD_CELL;
                 }
-                else if (buffer[cellIdx] == ' ') {
-                    buffer[cellIdx] = 'o';
+                else if (buffer[cellIdx] == DEAD_CELL) {
+                    buffer[cellIdx] = LIVE_CELL;
                 }
                 clear();
                 printMenu(buffer);
