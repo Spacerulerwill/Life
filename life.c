@@ -8,6 +8,8 @@
 #define DEFAULT_MS_FRAME_DELAY 200
 #define LIVE_CELL 'o'
 #define DEAD_CELL ' '
+
+// Print the menu in which the player adds cells to the grid
 void printMenu(const char* buffer) {
     addstr(buffer);
     attrset(COLOR_PAIR(1));
@@ -31,6 +33,7 @@ void printMenu(const char* buffer) {
     addstr(" Quit");
 }
 
+// Print the current generation of the cellular automata
 void printAutomata(const char* buffer) {
     addstr(buffer);
     attrset(COLOR_PAIR(1));
@@ -145,43 +148,39 @@ int main(int argc, char *argv[])
     There must also be an extra row on the top and bottom for borders above
     and below. We also need one extra char for null terminator!
     */
-    size_t totalChars = ((width + 3) * (height + 2));
+    size_t totalChars = ((width + 3) * (height + 2)) + 1;
 
-    char* buffer = (char*)malloc(sizeof(char) * totalChars);
-    memset(buffer, DEAD_CELL, sizeof(char) * totalChars);
-
-    // we will need to copy the buffer in the for loop, so we allocate space for that one too
-    char* bufferCopy = (char*)malloc(sizeof(char) * totalChars);
+    char* bufferWrite = (char*)malloc(sizeof(char) * totalChars);
+    memset(bufferWrite, DEAD_CELL, sizeof(char) * totalChars);
 
     // TODO: grid setup is messy, must cleanup!
-
     // add newlines to the end of every line
-    for (int i = 0; i < height + 2; i++) {
-        buffer[(width + 2) + i * ( width + 3)] = '\n';
+    for (int i = 0; i < height + 1; i++) {
+        bufferWrite[(width + 2) + i * ( width + 3)] = '\n';
     }
 
     // top line
-    buffer[0] = '+';
+    bufferWrite[0] = '+';
     for (int idx = 1; idx < width + 1; idx++) {
-        buffer[idx] = '-';
+        bufferWrite[idx] = '-';
     }
-    buffer[width + 1] = '+';
+    bufferWrite[width + 1] = '+';
 
     // middle
     for (int i = 1; i < height+1; i++) {
-        buffer[i * (width + 3)] = '|';
-        buffer[i * (width + 3) + width + 1] = '|';
+        bufferWrite[i * (width + 3)] = '|';
+        bufferWrite[i * (width + 3) + width + 1] = '|';
     }
 
     // top line
-    buffer[(width + 3) * (height + 1)] = '+';
+    bufferWrite[(width + 3) * (height + 1)] = '+';
     for (int idx = 1; idx < width + 1; idx++) {
-        buffer[idx + ((width + 3) * (height + 1))] = '-';
+        bufferWrite[idx + ((width + 3) * (height + 1))] = '-';
     }
-    buffer[totalChars-2] = '+';
+    bufferWrite[totalChars-3] = '+';
 
     // add null terminator
-    buffer[totalChars-1] = '\0';
+    bufferWrite[totalChars-1] = '\0';
 
     // Init curses screen
     initscr();
@@ -192,7 +191,7 @@ int main(int argc, char *argv[])
     }
 
     // Draw our char buffer and refresh the screen
-    printMenu(buffer);
+    printMenu(bufferWrite);
     refresh();
 
     // Our initial mouse position is (1,1) as to not be on the border
@@ -241,38 +240,41 @@ int main(int argc, char *argv[])
             }
             case 10: {
                 int cellIdx = y * (width + 3) + x;
-                if (buffer[cellIdx] == LIVE_CELL) {
-                    buffer[cellIdx] = DEAD_CELL;
+                if (bufferWrite[cellIdx] == LIVE_CELL) {
+                    bufferWrite[cellIdx] = DEAD_CELL;
                 }
-                else if (buffer[cellIdx] == DEAD_CELL) {
-                    buffer[cellIdx] = LIVE_CELL;
+                else if (bufferWrite[cellIdx] == DEAD_CELL) {
+                    bufferWrite[cellIdx] = LIVE_CELL;
                 }
                 clear();
-                printMenu(buffer);
+                printMenu(bufferWrite);
                 refresh();
                 move(y,x);
                 break;
             }
             case 'q': {
-                goto exit;
+                endwin();
+                free(bufferWrite);
+                return EXIT_SUCCESS;
             }
         }
     } while (inputCode != ' ');
 
     // Start simulation
     curs_set(0);
-    nextFrame(bufferCopy, buffer, width, totalChars);
+    // we will need to copy the buffer for reading in the for loop, so we allocate space for that one too
+    char* bufferRead = (char*)malloc(sizeof(char) * totalChars);
+    nextFrame(bufferRead, bufferWrite, width, totalChars);
     timeout(msFrameDelay);
 
     do {
         inputCode = getch();
-        nextFrame(bufferCopy, buffer, width, totalChars);
+        nextFrame(bufferRead, bufferWrite, width, totalChars);
     } while (inputCode != 'q');
 
     // Cleanup
-exit:  
     endwin();
-    free(buffer);
-    free(bufferCopy);
+    free(bufferRead);
+    free(bufferWrite);
     return EXIT_SUCCESS;
 }
