@@ -10,7 +10,8 @@
 #define DEAD_CELL ' '
 
 // Print the menu in which the player adds cells to the grid
-void printMenu(const char* buffer) {
+void printMenu(const char* buffer, int generation, int population) {
+    printw("Generation: %d Population: %d\n", generation, population);
     addstr(buffer);
     attrset(COLOR_PAIR(1));
     addstr("\n\nEnter");
@@ -34,7 +35,8 @@ void printMenu(const char* buffer) {
 }
 
 // Print the current generation of the cellular automata
-void printAutomata(const char* buffer) {
+void printAutomata(const char* buffer, int generation, int population) {
+    printw("Generation: %d Population: %d\n", generation, population);
     addstr(buffer);
     attrset(COLOR_PAIR(1));
     addstr("\nQ");
@@ -42,7 +44,7 @@ void printAutomata(const char* buffer) {
     addstr(" Quit");
 }
 
-void calculateNextGeneration(char* bufferRead, char* bufferWrite, int gridWidth, size_t totalChars) {
+void calculateNextGeneration(char* bufferRead, char* bufferWrite, int gridWidth, size_t totalChars, int* population) {
     memcpy(bufferRead, (void*)bufferWrite, totalChars * sizeof(char));
 
     for (int x = 1; x < gridWidth + 1; x++) {
@@ -65,21 +67,23 @@ void calculateNextGeneration(char* bufferRead, char* bufferWrite, int gridWidth,
                 // if alive and has less than 2 or more than 3 neighbors it dies
                 if (live_neighbors < 2 || live_neighbors > 3) {
                     bufferWrite[idx] = DEAD_CELL;
+                    (*population)--;
                 } 
             } else if (bufferRead[idx] == DEAD_CELL) {
                 // if its dead, then if it has three live neighbors it will come back to life
                 if (live_neighbors == 3) {
                     bufferWrite[idx] = LIVE_CELL;
+                    (*population)++;
                 }
             }
         }
     }
 }
 
-void nextFrame(char* bufferRead, char* bufferWrite, int gridWidth, size_t totalChars) {
-    calculateNextGeneration(bufferRead, bufferWrite, gridWidth, totalChars);
+void nextFrame(char* bufferRead, char* bufferWrite, int gridWidth, size_t totalChars, int generation, int* population) {
+    calculateNextGeneration(bufferRead, bufferWrite, gridWidth, totalChars, population);
     clear();
-    printAutomata(bufferWrite);
+    printAutomata(bufferWrite, generation, *population);
     refresh();
 }
 
@@ -99,6 +103,10 @@ int main(int argc, char *argv[])
     uint8_t width;
     uint8_t height;
     int msFrameDelay;
+
+    // cellular automata stats
+    int generation = 0;
+    int population = 0;
 
     char* endptr;
 
@@ -191,13 +199,13 @@ int main(int argc, char *argv[])
     }
 
     // Draw our char buffer and refresh the screen
-    printMenu(bufferWrite);
+    printMenu(bufferWrite, generation, population);
     refresh();
 
-    // Our initial mouse position is (1,1) as to not be on the border
+    // Our initial mouse position is (1,2) as to not be on the border
     int x = 1;
     int y = 1;
-    move(y, x);
+    move(y+1, x);
 
     // Ncurses input settings
     raw(); 
@@ -213,28 +221,28 @@ int main(int argc, char *argv[])
             case KEY_LEFT: {
                 if (x > 1) {
                     x -= 1;
-                    move(y,x);
+                    move(y+1,x);
                 }
                 break;
             }
             case KEY_RIGHT: {
                 if (x < width) {
                     x += 1;
-                    move(y,x);
+                    move(y+1,x);
                 }
                 break;
             }
             case KEY_UP: {
                 if (y > 1) {
                     y -= 1;
-                    move(y,x);
+                    move(y+1,x);
                 }
                 break;
             }
             case KEY_DOWN: {
                 if (y < height) {
                     y += 1;
-                    move(y,x);
+                    move(y+1,x);
                 }
                 break;
             }
@@ -242,14 +250,16 @@ int main(int argc, char *argv[])
                 int cellIdx = y * (width + 3) + x;
                 if (bufferWrite[cellIdx] == LIVE_CELL) {
                     bufferWrite[cellIdx] = DEAD_CELL;
+                    population--;
                 }
                 else if (bufferWrite[cellIdx] == DEAD_CELL) {
                     bufferWrite[cellIdx] = LIVE_CELL;
+                    population++;
                 }
                 clear();
-                printMenu(bufferWrite);
+                printMenu(bufferWrite, generation, population);
                 refresh();
-                move(y,x);
+                move(y+1,x);
                 break;
             }
             case 'q': {
@@ -264,12 +274,13 @@ int main(int argc, char *argv[])
     curs_set(0);
     // we will need to copy the buffer for reading in the for loop, so we allocate space for that one too
     char* bufferRead = (char*)malloc(sizeof(char) * totalChars);
-    nextFrame(bufferRead, bufferWrite, width, totalChars);
+    nextFrame(bufferRead, bufferWrite, width, totalChars, generation, &population);
     timeout(msFrameDelay);
 
     do {
         inputCode = getch();
-        nextFrame(bufferRead, bufferWrite, width, totalChars);
+        generation++;
+        nextFrame(bufferRead, bufferWrite, width, totalChars, generation, &population);
     } while (inputCode != 'q');
 
     // Cleanup
