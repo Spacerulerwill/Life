@@ -14,5 +14,11 @@ Ensure that all the ncurses headers and libraries are installed and then:
 
 
 # Running
+## Linux
+
     ./life <WIDTH> <HEIGHT> <FPS (Optional)>
+## Windows
+
+    life <WIDTH> <HEIGHT> <FPS (Optional)>
+
 
