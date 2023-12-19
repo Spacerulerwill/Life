@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 
     if (bufferWrite == NULL) {
         fputs("Failed to allocate memory for write framebuffer!", stderr);
-        return EXIT_FAILIURE;
+        return EXIT_FAILURE;
     }
     
     memset(bufferWrite, DEAD_CELL, sizeof(char) * totalChars);
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
         fputs("Failed to allocate memory for read framebuffer!", stderr);
         free(bufferWrite);
         endwin();
-        return EXIT_FAILIURE;
+        return EXIT_FAILURE;
     }
     
     nextFrame(bufferRead, bufferWrite, width, totalChars, generation, &population);

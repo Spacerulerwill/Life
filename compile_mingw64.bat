@@ -1,0 +1,1 @@
+gcc -I C:/MinGW/include/ncurses -o life life.c -lncurses -L C:/mingw64/bin -static
