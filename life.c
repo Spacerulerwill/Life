@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     */
     size_t totalChars = ((width + 3) * (height + 2)) + 1;
 
-    char* bufferWrite = (char*)malloc(sizeof(char) * totalChars);
+    char* bufferWrite = malloc(sizeof(char) * totalChars);
 
     if (bufferWrite == NULL) {
         fputs("Failed to allocate memory for write framebuffer!", stderr);
@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
     // Start simulation
     curs_set(0);
     // we will need to copy the buffer for reading in the for loop, so we allocate space for that one too
-    char* bufferRead = (char*)malloc(sizeof(char) * totalChars);
+    char* bufferRead = malloc(sizeof(char) * totalChars);
 
     // if we fail to allocate memory for the read framebuffer, free the write framebuffer stop ncurses and return
     if (bufferRead == NULL) {
